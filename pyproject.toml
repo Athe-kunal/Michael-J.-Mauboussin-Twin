@@ -1,5 +1,5 @@
 [project]
-name = "michael-j-mauboussin-twin"
+name = "michael-mauboussin-twin"
 version = "0.1.0"
 description = "LLM Engineering for Michael J. Mauboussin"
 readme = "README.md"
@@ -7,5 +7,12 @@ requires-python = ">=3.13"
 dependencies = [
     "bs4>=0.0.2",
     "ipykernel>=6.29.5",
+    "loguru>=0.7.3",
     "zenml>=0.71.0",
 ]
+
+[tool.poetry]
+name = "michael-mauboussin-twin"
+
+[tool.poetry.packages]
+find = { include = ["src"] }
