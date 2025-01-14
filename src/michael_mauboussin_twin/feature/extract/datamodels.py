@@ -1,5 +1,6 @@
-import pydantic
 from typing import Optional
+
+import pydantic
 
 
 class ExtractData(pydantic.BaseModel):
