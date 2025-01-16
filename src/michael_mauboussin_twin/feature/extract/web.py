@@ -5,15 +5,14 @@ import loguru
 import requests
 from bs4 import BeautifulSoup
 
-from michael_mauboussin_twin.feature.extract import constants
+from michael_mauboussin_twin.feature.extract import constants, datamodels
 
 logger = loguru.logger
 
-URL = "https://www.michaelmauboussin.com/writing"
-CHUNK_SIZE = 8192
 
-
-def get_data(url: str = URL) -> bs4.element.Tag:
+def get_consilient_observer_link_after_saving_previous_data(
+    url: str,
+) -> tuple[list[datamodels.ExtractData], bs4.element.Tag]:
     response = requests.get(url, timeout=30)
     if response.status_code != 200:
         logger.error(f"Failed to download HTML from {url}")
@@ -23,19 +22,32 @@ def get_data(url: str = URL) -> bs4.element.Tag:
 
     research_data = soup.find_all(class_="sqs-html-content")[-2]
     links = research_data.find_all("a")
-    consilient_observer_link = process_links(links)
-    return consilient_observer_link
+    previous_pdf_data_list, consilient_observer_link = process_links(links)
+    return previous_pdf_data_list, consilient_observer_link
 
 
-def process_links(links: list[bs4.element.Tag]) -> bs4.element.Tag:
+def process_links(
+    links: list[bs4.element.Tag],
+) -> tuple[list[datamodels.ExtractData], bs4.element.Tag | None]:
+    pdf_data_list: list[datamodels.ExtractData] = []
+    consilient_observer_link: bs4.element.Tag | None = None
     for link in links:
         if link.text.startswith("Research"):
-            pdf_data(link["href"], link.text)
+            filepath = pdf_data_save(link["href"], link.text)
+            pdf_data_list.append(
+                datamodels.ExtractData(
+                    url=link["href"],
+                    title=link.text,
+                    pdf_path=filepath,
+                    date=link.text[link.text.find("(") + 1 : link.text.rfind(")")],
+                )
+            )
         elif link.text.startswith("The Consilient Observer"):
-            return link
+            consilient_observer_link = link
+    return pdf_data_list, consilient_observer_link
 
 
-def pdf_data(link: str, filename: str) -> None:
+def pdf_data_save(link: str, filename: str) -> str:
     safe_filename = (
         "".join(c if c.isalnum() or c in "-_" else "_" for c in filename) + ".pdf"
     )
@@ -47,9 +59,10 @@ def pdf_data(link: str, filename: str) -> None:
     filepath = os.path.join(constants.DATA_DIR, safe_filename)
 
     with open(filepath, "wb") as f:
-        for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+        for chunk in response.iter_content(chunk_size=constants.CHUNK_SIZE):
             f.write(chunk)
     logger.info(f"Downloaded PDF {filename} to {filepath}")
+    return filepath
 
 
 def restore_original_filename(safe_filename: str) -> str:
@@ -70,4 +83,4 @@ def restore_original_filename(safe_filename: str) -> str:
 
 
 if __name__ == "__main__":
-    get_data()
+    get_consilient_observer_link_after_saving_previous_data(constants.URL)

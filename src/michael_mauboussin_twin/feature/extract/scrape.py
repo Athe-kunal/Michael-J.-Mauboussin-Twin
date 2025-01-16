@@ -73,12 +73,12 @@ def _sanitize_title_name(title: str) -> str:
     return title.replace(" ", "_")
 
 
-def scrape(url: str) -> list[datamodels.ExtractData]:
+def scrape_data(url: str) -> list[datamodels.ExtractData]:
     consilient_data: list[datamodels.ExtractData] = []
     driver = _setup_driver(url)
     _open_links(driver)
     _close_tab(driver)
-    while driver.window_handles:
+    while True:
         driver.switch_to.window(driver.window_handles[0])
         try:
             date, title, text = _extract_data(driver)
@@ -103,10 +103,14 @@ def scrape(url: str) -> list[datamodels.ExtractData]:
             )
         )
         driver.close()
+        try:
+            hasattr(driver, "window_handles")
+        except Exception:
+            break
     return consilient_data
 
 
 if __name__ == "__main__":
     URL = "https://www.morganstanley.com/im/en-us/financial-advisor/insights/series/consilient-observer.html"
-    data = scrape(URL)
+    data = scrape_data(URL)
     print(data)

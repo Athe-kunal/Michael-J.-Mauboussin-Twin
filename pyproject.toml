@@ -3,7 +3,7 @@ name = "michael-mauboussin-twin"
 version = "0.1.0"
 description = "LLM Engineering for Michael J. Mauboussin"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.9"
 dependencies = [
     "bs4>=0.0.2",
     "ipykernel>=6.29.5",
@@ -16,10 +16,29 @@ dependencies = [
 
 [tool.poetry]
 name = "michael-mauboussin-twin"
+version = "0.1.0"
+description = "LLM Engineering for Michael J. Mauboussin"
+authors = ["Astarag Mohapatra <athekunal@gmail.com>"]
 packages = [
     { include = "michael_mauboussin_twin", from = "src" }
 ]
 
+[tool.poetry.dependencies]
+python = ">=3.9"
+bs4 = ">=0.0.2"
+ipykernel = ">=6.29.5"
+isort = ">=5.13.2"
+loguru = ">=0.7.3"
+selenium = ">=4.27.1"
+webdriver-manager = ">=4.0.2"
+zenml = ">=0.71.0"
+
+[tool.poetry.package-data]
+michael_mauboussin_twin = ["py.typed"]
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+ignore_missing_imports = true
