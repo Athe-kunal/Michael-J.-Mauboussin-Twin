@@ -82,7 +82,7 @@ def scrape(url: str) -> list[datamodels.ExtractData]:
         driver.switch_to.window(driver.window_handles[0])
         try:
             date, title, text = _extract_data(driver)
-        except Exception as e:
+        except selenium.common.exceptions.NoSuchElementException as e:
             logger.error(f"Failed to extract data from {driver.current_url}: {e}")
             driver.close()
             continue
