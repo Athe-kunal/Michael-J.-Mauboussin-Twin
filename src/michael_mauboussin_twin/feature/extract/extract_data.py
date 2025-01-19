@@ -1,11 +1,12 @@
 import json
 import os
-import zenml
-import loguru
 import sys
 from typing import Annotated, Tuple
-from michael_mauboussin_twin.feature.extract import constants, datamodels, web, scrape
 
+import loguru
+import zenml
+
+from michael_mauboussin_twin.feature.extract import constants, datamodels, scrape, web
 
 sys.setrecursionlimit(3000)
 

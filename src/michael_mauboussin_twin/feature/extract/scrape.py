@@ -1,15 +1,17 @@
 import os
-import zenml
+from typing import Annotated
+
+import bs4
 import loguru
 import requests
 import selenium.common.exceptions
+import zenml
 from bs4 import BeautifulSoup
-import bs4
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
-from typing import Annotated
+
 from michael_mauboussin_twin.feature.extract import constants, datamodels
 
 logger = loguru.logger

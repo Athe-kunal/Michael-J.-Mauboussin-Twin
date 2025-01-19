@@ -1,11 +1,12 @@
 import os
+from typing import Annotated
 
 import bs4
 import loguru
 import requests
-from bs4 import BeautifulSoup
 import zenml
-from typing import Annotated
+from bs4 import BeautifulSoup
+
 from michael_mauboussin_twin.feature.extract import constants, datamodels
 
 logger = loguru.logger
