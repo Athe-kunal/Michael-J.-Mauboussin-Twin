@@ -4,14 +4,19 @@ import bs4
 import loguru
 import requests
 from bs4 import BeautifulSoup
-
+import zenml
+from typing import Annotated
 from michael_mauboussin_twin.feature.extract import constants, datamodels
 
 logger = loguru.logger
 
 
+@zenml.step(
+    name="download previous pdf and get consilient observer link",
+    enable_cache=True,
+)
 def get_consilient_observer_link_after_saving_previous_data(
-    url: str,
+    url: str = constants.URL,
 ) -> tuple[list[datamodels.ExtractData], bs4.element.Tag]:
     response = requests.get(url, timeout=30)
     if response.status_code != 200:
@@ -26,9 +31,16 @@ def get_consilient_observer_link_after_saving_previous_data(
     return previous_pdf_data_list, consilient_observer_link
 
 
+@zenml.step(
+    name="process links",
+    enable_cache=True,
+)
 def process_links(
     links: list[bs4.element.Tag],
-) -> tuple[list[datamodels.ExtractData], bs4.element.Tag | None]:
+) -> Annotated[
+    tuple[list[datamodels.ExtractData], bs4.element.Tag | None],
+    zenml.ArtifactConfig(name="previous_pdf_data", version="2025"),
+]:
     pdf_data_list: list[datamodels.ExtractData] = []
     consilient_observer_link: bs4.element.Tag | None = None
     for link in links:

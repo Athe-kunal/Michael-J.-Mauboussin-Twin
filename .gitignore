@@ -20,7 +20,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-
+.zen
 # Virtual Environment
 .env
 .venv

@@ -1,14 +1,15 @@
 import os
-
+import zenml
 import loguru
 import requests
 import selenium.common.exceptions
 from bs4 import BeautifulSoup
+import bs4
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
-
+from typing import Annotated
 from michael_mauboussin_twin.feature.extract import constants, datamodels
 
 logger = loguru.logger
@@ -73,7 +74,17 @@ def _sanitize_title_name(title: str) -> str:
     return title.replace(" ", "_")
 
 
-def scrape_data(url: str) -> list[datamodels.ExtractData]:
+@zenml.step(
+    name="scrape consilient observer data",
+    enable_cache=True,
+)
+def scrape_data(
+    url_tag: bs4.element.Tag,
+) -> Annotated[
+    list[datamodels.ExtractData],
+    zenml.ArtifactConfig(name="consilient_observer_data", version="2025"),
+]:
+    url = url_tag.get("href")
     consilient_data: list[datamodels.ExtractData] = []
     driver = _setup_driver(url)
     _open_links(driver)
@@ -105,7 +116,7 @@ def scrape_data(url: str) -> list[datamodels.ExtractData]:
         driver.close()
         try:
             hasattr(driver, "window_handles")
-        except Exception:
+        except selenium.common.exceptions.InvalidSessionIdException:
             break
     return consilient_data
 
