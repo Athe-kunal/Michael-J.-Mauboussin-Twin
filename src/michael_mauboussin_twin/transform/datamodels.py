@@ -12,7 +12,7 @@ class DocumentToVectorDB(pydantic.BaseModel):
 
     def to_point(self, vector: torch.Tensor) -> models.PointStruct:
         return models.PointStruct(
-            id=self.id,
-            vector=vector,
+            id=str(self.id),
+            vector=vector.tolist(),
             payload=self.metadata,
         )

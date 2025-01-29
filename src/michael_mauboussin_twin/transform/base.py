@@ -40,8 +40,15 @@ def upsert_to_qdrant(
 class VectorStore(abc.ABC, Generic[T]):
 
     def __init__(
-        self, db_settings: settings.DBSettings, qdrant_settings: settings.QdrantSettings
+        self,
+        model: colpali_model.ColQwen2 | sentence_transformers.SentenceTransformer,
+        db_settings: settings.DBSettings,
+        qdrant_settings: settings.QdrantSettings,
+        processor: colpali_model.ColQwen2Processor | None = None,
+        batch_size: int = 10,
     ) -> None:
+        self.model = model
+        self.processor = processor
         self.db_settings = db_settings
         self.qdrant_settings = qdrant_settings
         self.qdrant_client = qdrant_client.QdrantClient(
@@ -54,6 +61,7 @@ class VectorStore(abc.ABC, Generic[T]):
             vectors_config=self.qdrant_settings.vector_params,
             quantization_config=self.qdrant_settings.scalar_params,
         )
+        self.batch_size = batch_size
 
     @abc.abstractmethod
     def encode_docs(
@@ -64,12 +72,11 @@ class VectorStore(abc.ABC, Generic[T]):
     def batch_encode_and_upsert_docs(
         self,
         docs: list[datamodels.DocumentToVectorDB],
-        batch_size: int = 100,
     ) -> list[models.PointStruct]:
         point_struct_models: list[models.PointStruct] = []
         with tqdm.tqdm(total=len(docs), desc="Indexing Progress") as pbar:
-            for i in range(0, len(docs), batch_size):
-                batch = docs[i : i + batch_size]
+            for i in range(0, len(docs), self.batch_size):
+                batch = docs[i : i + self.batch_size]
                 vector_emb = self.encode_docs(batch)
                 assert vector_emb.shape[0] == len(
                     batch
@@ -82,10 +89,10 @@ class VectorStore(abc.ABC, Generic[T]):
                     self.qdrant_settings.collection_name,
                     current_batch,
                     i,
-                    i + batch_size,
+                    i + self.batch_size,
                 )
                 point_struct_models.extend(current_batch)
-                pbar.update(batch_size)
+                pbar.update(self.batch_size)
         return point_struct_models
 
     @classmethod

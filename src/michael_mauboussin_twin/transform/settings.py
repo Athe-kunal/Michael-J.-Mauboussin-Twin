@@ -13,11 +13,14 @@ class TextEmbeddingModel(NamedTuple):
     query_prompt_name: str | None = "s2p_query"
 
 
-def get_default_config(
+def get_default_multi_vector_config(
     vector_size: int,
+    indexing_threshold: int = 100,
 ) -> tuple[models.VectorParams, models.ScalarQuantization, models.OptimizersConfigDiff]:
 
-    optimizers_config = models.OptimizersConfigDiff(indexing_threshold=100)
+    optimizers_config = models.OptimizersConfigDiff(
+        indexing_threshold=indexing_threshold
+    )
 
     vectors_config = models.VectorParams(
         size=vector_size,
@@ -26,13 +29,34 @@ def get_default_config(
             comparator=models.MultiVectorComparator.MAX_SIM
         ),
     )
-    quantization_config = (
-        models.ScalarQuantization(
-            scalar=models.ScalarQuantizationConfig(
-                type=models.ScalarType.INT8,
-                quantile=0.99,
-                always_ram=True,
-            ),
+    quantization_config = models.ScalarQuantization(
+        scalar=models.ScalarQuantizationConfig(
+            type=models.ScalarType.INT8,
+            quantile=0.99,
+            always_ram=True,
+        ),
+    )
+    return vectors_config, quantization_config, optimizers_config
+
+
+def get_default_single_vector_config(
+    vector_size: int,
+    indexing_threshold: int = 100,
+) -> tuple[models.VectorParams, models.ScalarQuantization, models.OptimizersConfigDiff]:
+
+    optimizers_config = models.OptimizersConfigDiff(
+        indexing_threshold=indexing_threshold
+    )
+
+    vectors_config = models.VectorParams(
+        size=vector_size,
+        distance=models.Distance.COSINE,
+    )
+    quantization_config = models.ScalarQuantization(
+        scalar=models.ScalarQuantizationConfig(
+            type=models.ScalarType.INT8,
+            quantile=0.99,
+            always_ram=True,
         ),
     )
     return vectors_config, quantization_config, optimizers_config
