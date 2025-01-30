@@ -3,6 +3,9 @@ import sentence_transformers
 
 from michael_mauboussin_twin.transform import base, settings, datamodels
 
+CHUNK_SIZE = 100
+CHUNK_OVERLAP = 25
+
 
 class TextVectorDB(base.VectorDB):
     def __init__(
@@ -18,5 +21,3 @@ class TextVectorDB(base.VectorDB):
         self, docs: list[datamodels.DocumentToVectorDB]
     ) -> list[torch.Tensor]:
         text = [doc.doc for doc in docs]
-        vemb = [self.model.encode(txt) for txt in text]
-        return vemb
