@@ -16,3 +16,6 @@ class DocumentToVectorDB(pydantic.BaseModel):
             vector=vector.tolist(),
             payload=self.metadata,
         )
+
+    class Config:
+        arbitrary_types_allowed = True

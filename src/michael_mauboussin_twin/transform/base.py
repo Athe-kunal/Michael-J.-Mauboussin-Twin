@@ -8,8 +8,13 @@ import sentence_transformers
 import loguru
 from qdrant_client.http import models
 import qdrant_client
-
+import pathlib
+import pdf2image
+import base64
+import aiofiles
+import json
 from michael_mauboussin_twin.transform import settings, datamodels
+from michael_mauboussin_twin.feature.extract import datamodels as extract_datamodels
 
 T = TypeVar("T", bound="VectorStore")
 
@@ -95,11 +100,47 @@ class VectorStore(abc.ABC, Generic[T]):
                 pbar.update(self.batch_size)
         return point_struct_models
 
+    async def read_from_pdfs(
+        self, extraction_metadata_file: pathlib.Path
+    ) -> list[datamodels.DocumentToVectorDB]:
+        docs: list[datamodels.DocumentToVectorDB] = []
+        with open(extraction_metadata_file, "r") as f:
+            extraction_metadata = json.load(f)
+        extraction_metadata = [
+            extract_datamodels.ExtractData(**ed) for ed in extraction_metadata
+        ]
+        for ed in extraction_metadata:
+            pdf_path = pathlib.Path(ed.pdf_path)
+            if not pdf_path.exists():
+                logger.error(f"PDF file {pdf_path} does not exist")
+                continue
+            async with aiofiles.open(pdf_path, "rb") as f:
+                pdf_bytes = await f.read()
+                pdf_reader = pdf2image.convert_from_bytes(pdf_bytes)
+                for page in pdf_reader:
+                    docs.append(
+                        datamodels.DocumentToVectorDB(
+                            doc=page,
+                            metadata={
+                                "title": ed.title,
+                                "author": ed.author,
+                                "date": ed.date,
+                                "url": ed.url,
+                                "base64_image": base64.b64encode(
+                                    page.convert("RGB").tobytes()
+                                ).decode("utf-8"),
+                            },
+                        )
+                    )
+
+        return docs
+
     @classmethod
     def from_pretrained(
         cls: type[T],
         model_config: settings.VisionEmbeddingModel | settings.TextEmbeddingModel,
         config: settings.DBSettings,
+        qdrant_settings: settings.QdrantSettings,
     ) -> T:
         if isinstance(model_config, settings.VisionEmbeddingModel):
             model = colpali_model.ColQwen2.from_pretrained(
@@ -111,11 +152,21 @@ class VectorStore(abc.ABC, Generic[T]):
                 model_config.name
             )
 
-            return cls(model=model, processor=processor)
+            return cls(
+                model=model,
+                processor=processor,
+                db_settings=config,
+                qdrant_settings=qdrant_settings,
+            )
 
         elif isinstance(model_config, settings.TextEmbeddingModel):
             model = sentence_transformers.SentenceTransformer(
                 model_config.name, trust_remote_code=True
             ).to(config.RAG_MODEL_DEVICE)
 
-            return cls(model=model)
+            return cls(
+                model=model,
+                processor=None,
+                db_settings=config,
+                qdrant_settings=qdrant_settings,
+            )

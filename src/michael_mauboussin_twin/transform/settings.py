@@ -88,8 +88,8 @@ class DBSettings(pydantic_settings.BaseSettings):
 
     @pydantic.model_validator(mode="after")
     def validate_embedding_models(cls, values):
-        vision_model = values.get("VISION_EMBEDDING_MODEL_PARAMS")
-        text_model = values.get("TEXT_EMBEDDING_MODEL_PARAMS")
+        vision_model = values.VISION_EMBEDDING_MODEL_PARAMS
+        text_model = values.TEXT_EMBEDDING_MODEL_PARAMS
 
         if vision_model is None and text_model is None:
             raise ValueError("Either vision or text embedding model must be specified")
