@@ -17,7 +17,22 @@ class VisionVectorStore(base.VectorStore):
         self, docs: list[datamodels.DocumentToVectorDB]
     ) -> list[torch.Tensor]:
         images = [doc.doc for doc in docs]
-        batch_images = self.processor(images).to(self.model.device)
+        batch_images = self.processor.process_images(images).to(self.model.device)
         with torch.no_grad():
             image_embeddings = self.model(**batch_images)
         return image_embeddings
+
+    def query_db(self, query: str, k: int = 10) -> list[datamodels.QueryResult]:
+        with torch.no_grad():
+            processed_query = self.processor.process_queries([query]).to(
+                self.model.device
+            )
+            query_emb = self.model(**processed_query)
+        multivector_query = query_emb[0].cpu().float().numpy().tolist()
+
+        results = self.qdrant_client.query(
+            collection_name=self.qdrant_settings.collection_name,
+            query_vector=query_emb,
+            limit=k,
+        )
+        return results

@@ -79,3 +79,6 @@ logs/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Vector DBs
+src/mj-db/

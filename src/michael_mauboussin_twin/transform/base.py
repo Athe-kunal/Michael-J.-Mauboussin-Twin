@@ -50,23 +50,29 @@ class VectorStore(abc.ABC, Generic[T]):
         db_settings: settings.DBSettings,
         qdrant_settings: settings.QdrantSettings,
         processor: colpali_model.ColQwen2Processor | None = None,
-        batch_size: int = 10,
     ) -> None:
         self.model = model
         self.processor = processor
         self.db_settings = db_settings
         self.qdrant_settings = qdrant_settings
-        self.qdrant_client = qdrant_client.QdrantClient(
-            host=self.db_settings.QDRANT_DATABASE_HOST,
-        )
-        self.qdrant_client.recreate_collection(
+        if "localhost" in self.db_settings.QDRANT_CLOUD_URL:
+            self.qdrant_client = qdrant_client.QdrantClient(
+                path=self.db_settings.QDRANT_DATABASE_PATH,
+            )
+        else:
+            self.qdrant_client = qdrant_client.QdrantClient(
+                url=self.db_settings.QDRANT_CLOUD_URL,
+                port=self.db_settings.QDRANT_DATABASE_PORT,
+                api_key=self.db_settings.QDRANT_APIKEY,
+            )
+
+        self.qdrant_client.create_collection(
             collection_name=self.qdrant_settings.collection_name,
             on_disk_payload=self.qdrant_settings.on_disk_payload,
             optimizers_config=self.qdrant_settings.optimizers_config,
             vectors_config=self.qdrant_settings.vector_params,
             quantization_config=self.qdrant_settings.scalar_params,
         )
-        self.batch_size = batch_size
 
     @abc.abstractmethod
     def encode_docs(
@@ -77,11 +83,12 @@ class VectorStore(abc.ABC, Generic[T]):
     def batch_encode_and_upsert_docs(
         self,
         docs: list[datamodels.DocumentToVectorDB],
+        batch_size: int = 10,
     ) -> list[models.PointStruct]:
         point_struct_models: list[models.PointStruct] = []
         with tqdm.tqdm(total=len(docs), desc="Indexing Progress") as pbar:
-            for i in range(0, len(docs), self.batch_size):
-                batch = docs[i : i + self.batch_size]
+            for i in range(0, len(docs), batch_size):
+                batch = docs[i : i + batch_size]
                 vector_emb = self.encode_docs(batch)
                 assert vector_emb.shape[0] == len(
                     batch
@@ -94,10 +101,11 @@ class VectorStore(abc.ABC, Generic[T]):
                     self.qdrant_settings.collection_name,
                     current_batch,
                     i,
-                    i + self.batch_size,
+                    i + batch_size,
                 )
                 point_struct_models.extend(current_batch)
-                pbar.update(self.batch_size)
+                pbar.update(batch_size)
+                torch.cuda.empty_cache()
         return point_struct_models
 
     async def read_from_pdfs(
@@ -132,7 +140,7 @@ class VectorStore(abc.ABC, Generic[T]):
                             },
                         )
                     )
-
+            break
         return docs
 
     @classmethod
@@ -143,11 +151,14 @@ class VectorStore(abc.ABC, Generic[T]):
         qdrant_settings: settings.QdrantSettings,
     ) -> T:
         if isinstance(model_config, settings.VisionEmbeddingModel):
-            model = colpali_model.ColQwen2.from_pretrained(
-                model_config.name,
-                torch_dtype=torch.bfloat16,
-                device_map=config.RAG_MODEL_DEVICE,
-            ).eval()
+            model = (
+                colpali_model.ColQwen2.from_pretrained(
+                    model_config.name,
+                    torch_dtype=torch.bfloat16,
+                )
+                .to(config.RAG_MODEL_DEVICE)
+                .eval()
+            )
             processor = colpali_model.ColQwen2Processor.from_pretrained(
                 model_config.name
             )

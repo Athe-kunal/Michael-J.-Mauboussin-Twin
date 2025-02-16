@@ -2,6 +2,7 @@ import pydantic_settings
 import pydantic
 from typing import NamedTuple
 from qdrant_client.http import models
+import os
 
 
 class VisionEmbeddingModel(NamedTuple):
@@ -63,7 +64,7 @@ def get_default_single_vector_config(
 
 
 class QdrantSettings(pydantic.BaseModel):
-    collection_name: str = "mauboussin_twin"
+    collection_name: str = "mauboussinTwin"
     on_disk_payload: bool = True
     optimizers_config: models.OptimizersConfigDiff
     vector_params: models.VectorParams
@@ -78,13 +79,14 @@ class DBSettings(pydantic_settings.BaseSettings):
     VISION_EMBEDDING_MODEL_PARAMS: VisionEmbeddingModel | None = None
     TEXT_EMBEDDING_MODEL_PARAMS: TextEmbeddingModel | None = None
 
-    RAG_MODEL_DEVICE: str = "cuda:0"
+    RAG_MODEL_DEVICE: str = f"cuda:{os.environ['CUDA_VISIBLE_DEVICES'] or '0'}"
 
     USE_QDRANT_CLOUD: bool = False
-    QDRANT_DATABASE_HOST: str = ":memory:"
-    QDRANT_DATABASE_PORT: int = 6333
-    QDRANT_CLOUD_URL: str = "str"
-    QDRANT_APIKEY: str | None = None
+    QDRANT_DATABASE_PATH: str = os.getcwd() + "/mj-db"
+    QDRANT_DATABASE_HOST: str = os.environ.get("QDRANT_DATABASE_HOST", "localhost")
+    QDRANT_DATABASE_PORT: int = int(os.environ.get("QDRANT_DATABASE_PORT", "6333"))
+    QDRANT_CLOUD_URL: str = os.environ.get("QDRANT_CLOUD_URL", "http://localhost:6333")
+    QDRANT_APIKEY: str | None = os.environ.get("QDRANT_APIKEY")
 
     @pydantic.model_validator(mode="after")
     def validate_embedding_models(cls, values):
