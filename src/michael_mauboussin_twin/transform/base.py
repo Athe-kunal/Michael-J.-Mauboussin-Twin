@@ -13,6 +13,8 @@ import pdf2image
 import base64
 import aiofiles
 import json
+from PIL import Image
+from io import BytesIO
 from michael_mauboussin_twin.transform import settings, datamodels
 from michael_mauboussin_twin.feature.extract import datamodels as extract_datamodels
 
@@ -50,6 +52,7 @@ class VectorStore(abc.ABC, Generic[T]):
         db_settings: settings.DBSettings,
         qdrant_settings: settings.QdrantSettings,
         processor: colpali_model.ColQwen2Processor | None = None,
+        force_create_collection: bool = False,
     ) -> None:
         self.model = model
         self.processor = processor
@@ -65,14 +68,19 @@ class VectorStore(abc.ABC, Generic[T]):
                 port=self.db_settings.QDRANT_DATABASE_PORT,
                 api_key=self.db_settings.QDRANT_APIKEY,
             )
-
-        self.qdrant_client.create_collection(
-            collection_name=self.qdrant_settings.collection_name,
-            on_disk_payload=self.qdrant_settings.on_disk_payload,
-            optimizers_config=self.qdrant_settings.optimizers_config,
-            vectors_config=self.qdrant_settings.vector_params,
-            quantization_config=self.qdrant_settings.scalar_params,
-        )
+        if (
+            not self.qdrant_client.collection_exists(
+                self.qdrant_settings.collection_name
+            )
+            or force_create_collection
+        ):
+            self.qdrant_client.create_collection(
+                collection_name=self.qdrant_settings.collection_name,
+                on_disk_payload=self.qdrant_settings.on_disk_payload,
+                optimizers_config=self.qdrant_settings.optimizers_config,
+                vectors_config=self.qdrant_settings.vector_params,
+                quantization_config=self.qdrant_settings.scalar_params,
+            )
 
     @abc.abstractmethod
     def encode_docs(
@@ -129,18 +137,15 @@ class VectorStore(abc.ABC, Generic[T]):
                     docs.append(
                         datamodels.DocumentToVectorDB(
                             doc=page,
-                            metadata={
-                                "title": ed.title,
-                                "author": ed.author,
-                                "date": ed.date,
-                                "url": ed.url,
-                                "base64_image": base64.b64encode(
-                                    page.convert("RGB").tobytes()
-                                ).decode("utf-8"),
-                            },
+                            metadata=datamodels.Metadata(
+                                title=ed.title,
+                                author=ed.author,
+                                date=ed.date,
+                                url=ed.url,
+                                base64_image=image_to_base64(page),
+                            ),
                         )
                     )
-            break
         return docs
 
     @classmethod
@@ -181,3 +186,16 @@ class VectorStore(abc.ABC, Generic[T]):
                 db_settings=config,
                 qdrant_settings=qdrant_settings,
             )
+
+
+def image_to_base64(image):
+    buffered = BytesIO()
+    image.save(buffered, format="PNG")
+    img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+    return img_str
+
+
+def base64_to_image(base64_string):
+    img_data = base64.b64decode(base64_string)
+    img = Image.open(BytesIO(img_data))
+    return img

@@ -22,7 +22,7 @@ class VisionVectorStore(base.VectorStore):
             image_embeddings = self.model(**batch_images)
         return image_embeddings
 
-    def query_db(self, query: str, k: int = 10) -> list[datamodels.QueryResult]:
+    def query_db(self, query: str, k: int = 5) -> list[datamodels.QueryResult]:
         with torch.no_grad():
             processed_query = self.processor.process_queries([query]).to(
                 self.model.device
@@ -30,9 +30,16 @@ class VisionVectorStore(base.VectorStore):
             query_emb = self.model(**processed_query)
         multivector_query = query_emb[0].cpu().float().numpy().tolist()
 
-        results = self.qdrant_client.query(
+        results = self.qdrant_client.search(
             collection_name=self.qdrant_settings.collection_name,
-            query_vector=query_emb,
+            query_vector=multivector_query,
             limit=k,
         )
+        results = [
+            datamodels.QueryResult(
+                query=query,
+                metadata=datamodels.Metadata(**result.payload),
+            )
+            for result in results
+        ]
         return results
