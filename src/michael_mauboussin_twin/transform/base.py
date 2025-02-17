@@ -88,7 +88,7 @@ class VectorStore(abc.ABC, Generic[T]):
     ) -> list[torch.Tensor]:
         pass
 
-    def batch_encode_and_upsert_docs(
+    async def batch_encode_and_upsert_docs(
         self,
         docs: list[datamodels.DocumentToVectorDB],
         batch_size: int = 10,

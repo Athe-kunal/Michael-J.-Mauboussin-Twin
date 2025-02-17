@@ -79,7 +79,7 @@ class DBSettings(pydantic_settings.BaseSettings):
     VISION_EMBEDDING_MODEL_PARAMS: VisionEmbeddingModel | None = None
     TEXT_EMBEDDING_MODEL_PARAMS: TextEmbeddingModel | None = None
 
-    RAG_MODEL_DEVICE: str = f"cuda:{os.environ['CUDA_VISIBLE_DEVICES'] or '0'}"
+    RAG_MODEL_DEVICE: str = f"cuda:{os.environ.get('CUDA_VISIBLE_DEVICES', '0')}"
 
     USE_QDRANT_CLOUD: bool = False
     QDRANT_DATABASE_PATH: str = os.getcwd() + "/mj-db"

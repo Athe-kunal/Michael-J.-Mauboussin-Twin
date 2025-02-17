@@ -8,7 +8,7 @@ from qdrant_client.http import models
 
 class Metadata(pydantic.BaseModel):
     title: str
-    author: str
+    author: list[str]
     date: str
     url: str
     base64_image: str

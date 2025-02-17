@@ -8,6 +8,7 @@ dependencies = [
     "aiofiles>=24.1.0",
     "bs4>=0.0.2",
     "colpali-engine>=0.3.6",
+    "docling>=2.15.1",
     "ipykernel>=6.29.5",
     "isort>=5.13.2",
     "langchain-text-splitters>=0.3.5",
