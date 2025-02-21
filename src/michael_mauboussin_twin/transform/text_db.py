@@ -20,4 +20,4 @@ class TextVectorDB(base.VectorDB):
     def encode_docs(
         self, docs: list[datamodels.DocumentToVectorDB]
     ) -> list[torch.Tensor]:
-        text = [doc.doc for doc in docs]
+        raise NotImplementedError
